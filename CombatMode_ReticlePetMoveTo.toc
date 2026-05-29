@@ -1,7 +1,7 @@
 ## Interface: 120005, 120001, 120000
 ## Version: 0.1.0
 ## Title: CombatMode: Reticle Pet Move To
-## Notes: Pet-move for Combat Mode: auto-installs CM custom condition and macro; frees LMB for ground click.
+## Notes: Pet-move for Combat Mode: auto-installs CM custom condition and macro; unlocks cursor for /petmoveto ground placement.
 ## Author: jpduchesne
 ## Dependencies: CombatMode
 ## SavedVariables: CombatMode_ReticlePetMoveToDB
