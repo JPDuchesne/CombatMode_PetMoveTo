@@ -1,7 +1,7 @@
---[[ CMPetMoveCMBridge.lua — pet-move session + LMB override bridge for Combat Mode ]]
+--[[ CombatMode_ReticlePetMoveTo.lua — pet-move session + LMB override bridge for Combat Mode ]]
 
 local ADDON = ...
-local Bridge = _G.CMPetMoveCMBridge
+local Bridge = _G.CombatMode_ReticlePetMoveTo
 
 local GetTime = GetTime
 local IsMouselooking = IsMouselooking

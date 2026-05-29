@@ -1,11 +1,11 @@
 ## Interface: 120005, 120001, 120000
 ## Version: 0.1.0
-## Title: CM Pet Move Bridge
+## Title: CombatMode: Reticle Pet Move To
 ## Notes: Pet-move for Combat Mode: auto-installs CM custom condition and macro; frees LMB for ground click.
 ## Author: jpduchesne
 ## Dependencies: CombatMode
-## SavedVariables: CMPetMoveCMBridgeDB
+## SavedVariables: CombatMode_ReticlePetMoveToDB
 ## DefaultState: enabled
 
 Config.lua
-CMPetMoveCMBridge.lua
+CombatMode_ReticlePetMoveTo.lua

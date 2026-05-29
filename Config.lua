@@ -1,26 +1,26 @@
 --[[ Config.lua — bundled CM custom condition + pet-move macro installer ]]
 
 local Bridge = {}
-_G.CMPetMoveCMBridge = Bridge
+_G.CombatMode_ReticlePetMoveTo = Bridge
 
 Bridge.TIMEOUT = 30
 Bridge.STOP_TARGET_GRACE = 0.35
 Bridge.CONFIRM_END_DELAY = 0.5
 Bridge.GROUND_CLICK_BINDING = "CAMERAORSELECTORMOVE"
-Bridge.CONDITION_VERSION = 2
+Bridge.CONDITION_VERSION = 3
 
 Bridge.MACRO_NAME = "CM Pet Move"
 Bridge.MACRO_ICON = "Ability_Hunter_MastersCall"
 Bridge.MACRO_TEXT = table.concat({
-  "/run if CMPetMoveCMBridge:IsActive() then CMPetMoveCMBridge:Cancel() return end",
+  "/run if CombatMode_ReticlePetMoveTo:IsActive() then CombatMode_ReticlePetMoveTo:Cancel() return end",
   "/petpassive",
   "/petmoveto",
-  "/run CMPetMoveCMBridge:Activate()",
+  "/run CombatMode_ReticlePetMoveTo:Activate()",
 }, "\n")
 
 Bridge.CONDITION_BODY = table.concat({
   "if SpellIsTargeting() then return true end",
-  "if CMPetMoveCMBridge:WantsCursorUnlock() then return true end",
+  "if CombatMode_ReticlePetMoveTo:WantsCursorUnlock() then return true end",
   "return false",
 }, "\n")
 
@@ -29,7 +29,7 @@ function Bridge:GetCM()
 end
 
 function Bridge:ShouldUnlockCursorDuringPetMove()
-  return CMPetMoveCMBridgeDB and CMPetMoveCMBridgeDB.unlockCursor == true
+  return CombatMode_ReticlePetMoveToDB and CombatMode_ReticlePetMoveToDB.unlockCursor == true
 end
 
 function Bridge:IsActive()
@@ -52,7 +52,7 @@ function Bridge:WantsCursorUnlock()
 end
 
 function Bridge:ConditionNeedsUpdate(current, global)
-  if not current:find("CMPetMoveCMBridge:WantsCursorUnlock", 1, true) then
+  if not current:find("CombatMode_ReticlePetMoveTo:WantsCursorUnlock", 1, true) then
     return true
   end
   if current:find("petMoveActive", 1, true) then
@@ -74,8 +74,9 @@ function Bridge:InstallCMCondition()
     return true, "Combat Mode custom condition already installed."
   end
 
-  if current:match("%S") and not current:find("petMoveActive", 1, true) and not current:find("CMPetMoveCMBridge", 1, true) then
-    global.customCondition = "if CMPetMoveCMBridge:WantsCursorUnlock() then return true end\n" .. current
+  -- Preserve unrelated user conditions; detect ours (old or new name) via WantsCursorUnlock.
+  if current:match("%S") and not current:find("petMoveActive", 1, true) and not current:find("WantsCursorUnlock", 1, true) then
+    global.customCondition = "if CombatMode_ReticlePetMoveTo:WantsCursorUnlock() then return true end\n" .. current
   else
     global.customCondition = self.CONDITION_BODY
   end
@@ -109,7 +110,7 @@ function Bridge:InstallMacro()
 end
 
 function Bridge:Print(msg)
-  print("|cff33ccffCMPetMoveCMBridge:|r " .. msg)
+  print("|cff33ccffCM_ReticlePetMoveTo:|r " .. msg)
 end
 
 function Bridge:InstallAll(silent)
@@ -146,12 +147,12 @@ function Bridge:TryAutoInstall()
   local okMacro = self:InstallMacro()
   local ok = okCM and okMacro
 
-  if not CMPetMoveCMBridgeDB then
-    CMPetMoveCMBridgeDB = {}
+  if not CombatMode_ReticlePetMoveToDB then
+    CombatMode_ReticlePetMoveToDB = {}
   end
 
-  if ok and not CMPetMoveCMBridgeDB.greeted then
-    CMPetMoveCMBridgeDB.greeted = true
+  if ok and not CombatMode_ReticlePetMoveToDB.greeted then
+    CombatMode_ReticlePetMoveToDB.greeted = true
     self:Print("Installed CM custom condition + |cff00ff00" .. self.MACRO_NAME .. "|r macro.")
     self:Print("Bind |cff00ff00` |r to that macro. Use |cff00ff00/cpmb|r for help.")
   end
@@ -160,7 +161,7 @@ end
 function Bridge:ShowStatus()
   local cm = self:GetCM()
   local current = cm and cm.DB and cm.DB.global and (cm.DB.global.customCondition or "") or ""
-  local conditionOk = current:find("CMPetMoveCMBridge:WantsCursorUnlock", 1, true)
+  local conditionOk = current:find("CombatMode_ReticlePetMoveTo:WantsCursorUnlock", 1, true)
     and not current:find("petMoveActive", 1, true)
 
   local macroIndex = GetMacroIndexByName(self.MACRO_NAME)
@@ -177,18 +178,17 @@ function Bridge:ShowStatus()
   self:Print("|cff00ff00/cpmb unlock|r toggles free-cursor mode during pet move.")
 end
 
-SLASH_CMPETMOVEBRIDGE1 = "/cpmb"
-SLASH_CMPETMOVEBRIDGE2 = "/cmpetmovebridge"
-SlashCmdList["CMPETMOVEBRIDGE"] = function(msg)
+SLASH_COMBATMODE_RETICLEPETMOVETO1 = "/cpmb"
+SlashCmdList["COMBATMODE_RETICLEPETMOVETO"] = function(msg)
   msg = strtrim(msg or ""):lower()
   if msg == "install" or msg == "setup" then
     Bridge:InstallAll(false)
   elseif msg == "unlock" then
-    if not CMPetMoveCMBridgeDB then
-      CMPetMoveCMBridgeDB = {}
+    if not CombatMode_ReticlePetMoveToDB then
+      CombatMode_ReticlePetMoveToDB = {}
     end
     local enable = not Bridge:ShouldUnlockCursorDuringPetMove()
-    CMPetMoveCMBridgeDB.unlockCursor = enable
+    CombatMode_ReticlePetMoveToDB.unlockCursor = enable
     if enable then
       Bridge:Print("Cursor unlock during pet move: |cff00ff00on|r (free mouse while aiming).")
     else

@@ -1,4 +1,4 @@
-# CM Pet Move Bridge
+# CombatMode: Reticle Pet Move To
 
 Companion addon for [Combat Mode](https://github.com/djsmithdev/combatmode) + hunter `/petmoveto`.
 
@@ -24,7 +24,7 @@ This fixes "cursor unlocks before I confirm" when you want to aim with the CM cr
 
 Copy this folder to:
 
-`World of Warcraft/_retail_/Interface/AddOns/CMPetMoveCMBridge`
+`World of Warcraft/_retail_/Interface/AddOns/CombatMode_ReticlePetMoveTo`
 
 Requires **Combat Mode** enabled. `/reload` then `/cpmb install`.
 
@@ -46,7 +46,7 @@ Requires **Combat Mode** enabled. `/reload` then `/cpmb install`.
 
 ## Session lifecycle
 
-The macro calls `CMPetMoveCMBridge:Activate()` and `CMPetMoveCMBridge:Cancel()` — the addon owns all session state internally.
+The macro calls `CombatMode_ReticlePetMoveTo:Activate()` and `CombatMode_ReticlePetMoveTo:Cancel()` — the addon owns all session state internally.
 
 - **Start**: `Activate()` sets a timestamp and shows the session frame (OnUpdate begins).
 - **End**: `SpellStopTargeting` hook detects confirm/cancel and hides the frame (OnUpdate stops).
@@ -59,17 +59,17 @@ The macro calls `CMPetMoveCMBridge:Activate()` and `CMPetMoveCMBridge:Cancel()` 
 **Macro** `CM Pet Move`:
 
 ```lua
-/run if CMPetMoveCMBridge:IsActive() then CMPetMoveCMBridge:Cancel() return end
+/run if CombatMode_ReticlePetMoveTo:IsActive() then CombatMode_ReticlePetMoveTo:Cancel() return end
 /petpassive
 /petmoveto
-/run CMPetMoveCMBridge:Activate()
+/run CombatMode_ReticlePetMoveTo:Activate()
 ```
 
 **Combat Mode custom condition** (auto-installed):
 
 ```lua
 if SpellIsTargeting() then return true end
-if CMPetMoveCMBridge:WantsCursorUnlock() then return true end
+if CombatMode_ReticlePetMoveTo:WantsCursorUnlock() then return true end
 return false
 ```
 
