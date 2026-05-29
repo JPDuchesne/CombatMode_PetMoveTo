@@ -6,7 +6,7 @@ _G.CombatMode_ReticlePetMoveTo = Bridge
 Bridge.TIMEOUT = 30
 Bridge.STOP_TARGET_GRACE = 0.35
 Bridge.CONFIRM_END_DELAY = 0.5
-Bridge.GROUND_CLICK_BINDING = "CAMERAORSELECTORMOVE"
+Bridge.GROUND_CLICK_BINDING = nil
 Bridge.CONDITION_VERSION = 3
 
 Bridge.MACRO_NAME = "CM Pet Move"

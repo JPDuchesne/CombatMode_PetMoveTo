@@ -4,7 +4,6 @@ local ADDON = ...
 local Bridge = _G.CombatMode_ReticlePetMoveTo
 
 local GetTime = GetTime
-local IsMouselooking = IsMouselooking
 local SetMouselookOverrideBinding = SetMouselookOverrideBinding
 
 local LMB_BINDING_KEYS = { "button1", "shiftbutton1", "ctrlbutton1", "altbutton1" }
@@ -14,8 +13,6 @@ local CONFIRM_END_DELAY = Bridge.CONFIRM_END_DELAY
 local GROUND_CLICK_BINDING = Bridge.GROUND_CLICK_BINDING
 
 local frame
-local wasLocked = false
-local didUnlockCursor = false
 local tick = 0
 local confirmEndTimer
 
@@ -48,6 +45,7 @@ local function applyPetMoveLmbBinding()
   for _, name in ipairs(LMB_BINDING_KEYS) do
     local settings = bindings[name]
     if settings and settings.enabled and settings.key then
+      -- nil clears CM's click-cast override, letting the raw click confirm ground targeting.
       SetMouselookOverrideBinding(settings.key, GROUND_CLICK_BINDING)
     end
   end
@@ -61,19 +59,6 @@ local function restoreLmbOverrides()
   addon.OverrideDefaultButtons()
 end
 
-local function maybeRelock()
-  if not didUnlockCursor then
-    return
-  end
-  local addon = getCM()
-  if not addon or not addon.LockFreeLook or not addon.ShouldFreeLookBeOff then
-    return
-  end
-  if not addon.ShouldFreeLookBeOff() and not IsMouselooking() then
-    addon.LockFreeLook()
-  end
-end
-
 local function endSession()
   if not Bridge.activeTimestamp then
     return
@@ -81,25 +66,12 @@ local function endSession()
   Bridge.activeTimestamp = nil
   cancelConfirmEndTimer()
   restoreLmbOverrides()
-  maybeRelock()
-  wasLocked = false
-  didUnlockCursor = false
   frame:Hide()
 end
 
 local function onSessionStart()
-  local addon = getCM()
-  if not addon then
-    return
-  end
   cancelConfirmEndTimer()
-  wasLocked = IsMouselooking()
-  didUnlockCursor = false
   applyPetMoveLmbBinding()
-  if wasLocked and addon.UnlockFreeLook and Bridge:ShouldUnlockCursorDuringPetMove() then
-    addon.UnlockFreeLook()
-    didUnlockCursor = true
-  end
 end
 
 local function scheduleConfirmEnd()
