@@ -9,13 +9,11 @@ local SetMouselookOverrideBinding = SetMouselookOverrideBinding
 
 local LMB_BINDING_KEYS = { "button1", "shiftbutton1", "ctrlbutton1", "altbutton1" }
 local TICK = 0.1
-local TIMEOUT = Bridge.TIMEOUT
 local STOP_TARGET_GRACE = Bridge.STOP_TARGET_GRACE
 local CONFIRM_END_DELAY = Bridge.CONFIRM_END_DELAY
 local GROUND_CLICK_BINDING = Bridge.GROUND_CLICK_BINDING
 
 local frame
-local wasActive = false
 local wasLocked = false
 local didUnlockCursor = false
 local tick = 0
@@ -25,14 +23,6 @@ local function getCM()
   return Bridge:GetCM()
 end
 
-local function getGlobal()
-  local addon = getCM()
-  if not addon or not addon.DB or not addon.DB.global then
-    return nil
-  end
-  return addon.DB.global
-end
-
 local function cancelConfirmEndTimer()
   if confirmEndTimer then
     confirmEndTimer:Cancel()
@@ -40,37 +30,9 @@ local function cancelConfirmEndTimer()
   end
 end
 
-local function petMoveTimestamp()
-  local global = getGlobal()
-  if not global then
-    return nil
-  end
-  local t = global.petMoveActive
-  if type(t) ~= "number" then
-    return nil
-  end
-  if GetTime() - t > TIMEOUT then
-    global.petMoveActive = nil
-    return nil
-  end
-  return t
-end
-
-local function isActive()
-  return petMoveTimestamp() ~= nil
-end
-
 local function withinGracePeriod()
-  local t = petMoveTimestamp()
-  return t ~= nil and (GetTime() - t) < STOP_TARGET_GRACE
-end
-
-local function clearSessionFlags()
-  local global = getGlobal()
-  if not global then
-    return
-  end
-  global.petMoveActive = nil
+  local t = Bridge.activeTimestamp
+  return type(t) == "number" and (GetTime() - t) < STOP_TARGET_GRACE
 end
 
 local function applyPetMoveLmbBinding()
@@ -86,8 +48,6 @@ local function applyPetMoveLmbBinding()
   for _, name in ipairs(LMB_BINDING_KEYS) do
     local settings = bindings[name]
     if settings and settings.enabled and settings.key then
-      -- While mouselook is locked, nil still routes LMB to CM click-cast (e.g. a macro).
-      -- Explicit ground-click binding places the pet without unlocking the reticle.
       SetMouselookOverrideBinding(settings.key, GROUND_CLICK_BINDING)
     end
   end
@@ -114,34 +74,17 @@ local function maybeRelock()
   end
 end
 
-local function onSessionEnd()
+local function endSession()
+  if not Bridge.activeTimestamp then
+    return
+  end
+  Bridge.activeTimestamp = nil
   cancelConfirmEndTimer()
   restoreLmbOverrides()
   maybeRelock()
   wasLocked = false
   didUnlockCursor = false
-end
-
-local function endSession()
-  if not isActive() then
-    cancelConfirmEndTimer()
-    return
-  end
-  clearSessionFlags()
-  if wasActive then
-    onSessionEnd()
-    wasActive = false
-  end
-end
-
-local function scheduleConfirmEnd()
-  cancelConfirmEndTimer()
-  confirmEndTimer = C_Timer.NewTimer(CONFIRM_END_DELAY, function()
-    confirmEndTimer = nil
-    if isActive() then
-      endSession()
-    end
-  end)
+  frame:Hide()
 end
 
 local function onSessionStart()
@@ -159,35 +102,63 @@ local function onSessionStart()
   end
 end
 
+local function scheduleConfirmEnd()
+  cancelConfirmEndTimer()
+  local sessionStart = Bridge.activeTimestamp
+  confirmEndTimer = C_Timer.NewTimer(CONFIRM_END_DELAY, function()
+    confirmEndTimer = nil
+    -- Only end the session this timer belongs to; a new Activate() resets activeTimestamp.
+    if Bridge.activeTimestamp == sessionStart then
+      endSession()
+    end
+  end)
+end
+
+function Bridge:Activate()
+  self.activeTimestamp = GetTime()
+  frame:Show()
+  onSessionStart()
+end
+
+function Bridge:Cancel()
+  endSession()
+  SpellStopTargeting()
+end
+
 frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("GLOBAL_MOUSE_DOWN")
+frame:Hide()
 
 frame:SetScript("OnEvent", function(_, event, arg1)
   if event == "ADDON_LOADED" and arg1 == ADDON then
     local cm = getCM()
     if cm and cm.OverrideDefaultButtons then
       hooksecurefunc(cm, "OverrideDefaultButtons", function()
-        if isActive() then
+        if Bridge:IsActive() then
           applyPetMoveLmbBinding()
         end
       end)
     end
     hooksecurefunc("SpellStopTargeting", function()
-      if not isActive() or withinGracePeriod() then
+      if not Bridge:IsActive() or withinGracePeriod() then
         return
       end
       endSession()
     end)
+    frame:UnregisterEvent("ADDON_LOADED")
     return
   end
 
-  if event == "GLOBAL_MOUSE_DOWN" and arg1 == "LeftButton" and isActive() and not withinGracePeriod() then
-    -- Do NOT endSession immediately — that restores click-cast before the ground click lands.
+  -- Safety net: schedule session end on LMB in case SpellStopTargeting does not fire on confirm.
+  -- /petmoveto is not a spell (SpellIsTargeting() is false), so confirm behavior is unverified.
+  if event == "GLOBAL_MOUSE_DOWN" and arg1 == "LeftButton" and Bridge:IsActive() and not withinGracePeriod() then
     scheduleConfirmEnd()
   end
 end)
 
+-- OnUpdate only fires while the frame is shown (active session).
+-- Re-applies LMB binding defensively and force-ends on timeout.
 frame:SetScript("OnUpdate", function(_, elapsed)
   tick = tick + elapsed
   if tick < TICK then
@@ -195,16 +166,10 @@ frame:SetScript("OnUpdate", function(_, elapsed)
   end
   tick = 0
 
-  local active = isActive()
-  if active then
-    applyPetMoveLmbBinding()
+  if not Bridge:IsActive() then
+    endSession()
+    return
   end
 
-  if active and not wasActive then
-    onSessionStart()
-  elseif not active and wasActive then
-    onSessionEnd()
-  end
-
-  wasActive = active
+  applyPetMoveLmbBinding()
 end)

@@ -9,7 +9,7 @@ On login it **automatically**:
 
 You only need to **bind `` ` ``** (or any key) to that macro.
 
-## Default behavior (v1.3+)
+## Default behavior
 
 **Reticle stays locked** while you aim the pet-move ring. During the ring, LMB is temporarily bound to **Camera Or Select Or Move** (ground confirm) instead of your CM click-cast macro.
 
@@ -18,7 +18,7 @@ You only need to **bind `` ` ``** (or any key) to that macro.
 | **Default** | Start ring | Reticle **locked** | Places pet (not your click-cast macro) |
 | `/cpmb unlock` (on) | Start ring | Cursor **unlocked** | Places pet |
 
-This fixes “cursor unlocks before I confirm” when you want to aim with the CM crosshair, not a free mouse.
+This fixes "cursor unlocks before I confirm" when you want to aim with the CM crosshair, not a free mouse.
 
 ## Install
 
@@ -38,27 +38,31 @@ Requires **Combat Mode** enabled. `/reload` then `/cpmb install`.
 | `/cpmb macro` | Print macro text |
 | `/cpmb condition` | Print CM custom condition |
 
-## Timing / LMB confirm
-
-- **Do not** end the pet-move session on LMB press — that restored click-cast before the ground click registered (the main “works sometimes” bug).
-- LMB override stays cleared until `SpellStopTargeting` (confirm/cancel) or a **0.5s** fallback after LMB.
-- **0.35s grace** after `` ` `` ignores spurious cancel events when the ring starts.
-
 ## Flow (default)
 
 - `` ` `` → ring up, **reticle stays locked**, LMB freed from click-cast
 - **LMB** → place pet → click-cast restored
 - `` ` `` again or **Esc** → cancel
 
+## Session lifecycle
+
+The macro calls `CMPetMoveCMBridge:Activate()` and `CMPetMoveCMBridge:Cancel()` — the addon owns all session state internally.
+
+- **Start**: `Activate()` sets a timestamp and shows the session frame (OnUpdate begins).
+- **End**: `SpellStopTargeting` hook detects confirm/cancel and hides the frame (OnUpdate stops).
+- **LMB fallback**: 0.5s timer in case `SpellStopTargeting` does not fire on `/petmoveto` confirm (it's not a spell).
+- **Timeout**: 30s safety net via OnUpdate.
+- **Idle**: frame is hidden — zero CPU cost.
+
 ## Manual setup
 
 **Macro** `CM Pet Move`:
 
 ```lua
-/run local g=CM.DB.global if g.petMoveActive then g.petMoveActive=nil SpellStopTargeting()return end
+/run if CMPetMoveCMBridge:IsActive() then CMPetMoveCMBridge:Cancel() return end
 /petpassive
 /petmoveto
-/run CM.DB.global.petMoveActive=GetTime()
+/run CMPetMoveCMBridge:Activate()
 ```
 
 **Combat Mode custom condition** (auto-installed):

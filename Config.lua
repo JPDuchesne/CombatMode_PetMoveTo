@@ -12,10 +12,10 @@ Bridge.CONDITION_VERSION = 2
 Bridge.MACRO_NAME = "CM Pet Move"
 Bridge.MACRO_ICON = "Ability_Hunter_MastersCall"
 Bridge.MACRO_TEXT = table.concat({
-  "/run local g=CM.DB.global if g.petMoveActive then g.petMoveActive=nil SpellStopTargeting()return end",
+  "/run if CMPetMoveCMBridge:IsActive() then CMPetMoveCMBridge:Cancel() return end",
   "/petpassive",
   "/petmoveto",
-  "/run CM.DB.global.petMoveActive=GetTime()",
+  "/run CMPetMoveCMBridge:Activate()",
 }, "\n")
 
 Bridge.CONDITION_BODY = table.concat({
@@ -25,9 +25,6 @@ Bridge.CONDITION_BODY = table.concat({
 }, "\n")
 
 function Bridge:GetCM()
-  if not LibStub then
-    return nil
-  end
   return LibStub("AceAddon-3.0"):GetAddon("CombatMode", true)
 end
 
@@ -35,16 +32,23 @@ function Bridge:ShouldUnlockCursorDuringPetMove()
   return CMPetMoveCMBridgeDB and CMPetMoveCMBridgeDB.unlockCursor == true
 end
 
+function Bridge:IsActive()
+  local t = self.activeTimestamp
+  if type(t) ~= "number" then
+    return false
+  end
+  if GetTime() - t > self.TIMEOUT then
+    self.activeTimestamp = nil
+    return false
+  end
+  return true
+end
+
 function Bridge:WantsCursorUnlock()
   if not self:ShouldUnlockCursorDuringPetMove() then
     return false
   end
-  local cm = self:GetCM()
-  if not cm or not cm.DB or not cm.DB.global then
-    return false
-  end
-  local t = cm.DB.global.petMoveActive
-  return type(t) == "number" and (GetTime() - t) < self.TIMEOUT
+  return self:IsActive()
 end
 
 function Bridge:ConditionNeedsUpdate(current, global)
@@ -138,8 +142,8 @@ function Bridge:TryAutoInstall()
   end
 
   self.pendingInstall = false
-  local okCM = select(1, self:InstallCMCondition())
-  local okMacro = select(1, self:InstallMacro())
+  local okCM = self:InstallCMCondition()
+  local okMacro = self:InstallMacro()
   local ok = okCM and okMacro
 
   if not CMPetMoveCMBridgeDB then
@@ -148,8 +152,8 @@ function Bridge:TryAutoInstall()
 
   if ok and not CMPetMoveCMBridgeDB.greeted then
     CMPetMoveCMBridgeDB.greeted = true
-    Bridge:Print("Installed CM custom condition + |cff00ff00" .. Bridge.MACRO_NAME .. "|r macro.")
-    Bridge:Print("Bind |cff00ff00` |r to that macro. Use |cff00ff00/cpmb|r for help.")
+    self:Print("Installed CM custom condition + |cff00ff00" .. self.MACRO_NAME .. "|r macro.")
+    self:Print("Bind |cff00ff00` |r to that macro. Use |cff00ff00/cpmb|r for help.")
   end
 end
 
