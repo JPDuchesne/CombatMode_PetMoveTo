@@ -5,9 +5,7 @@ _G.CombatMode_ReticlePetMoveTo = Bridge
 
 Bridge.TIMEOUT = 30
 Bridge.STOP_TARGET_GRACE = 0.35
-Bridge.CONFIRM_END_DELAY = 0.5
-Bridge.GROUND_CLICK_BINDING = nil
-Bridge.CONDITION_VERSION = 3
+Bridge.CONDITION_VERSION = 4
 
 Bridge.MACRO_NAME = "CM Pet Move"
 Bridge.MACRO_ICON = "Ability_Hunter_MastersCall"
@@ -28,10 +26,6 @@ function Bridge:GetCM()
   return LibStub("AceAddon-3.0"):GetAddon("CombatMode", true)
 end
 
-function Bridge:ShouldUnlockCursorDuringPetMove()
-  return CombatMode_ReticlePetMoveToDB and CombatMode_ReticlePetMoveToDB.unlockCursor == true
-end
-
 function Bridge:IsActive()
   local t = self.activeTimestamp
   if type(t) ~= "number" then
@@ -45,9 +39,6 @@ function Bridge:IsActive()
 end
 
 function Bridge:WantsCursorUnlock()
-  if not self:ShouldUnlockCursorDuringPetMove() then
-    return false
-  end
   return self:IsActive()
 end
 
@@ -165,17 +156,12 @@ function Bridge:ShowStatus()
     and not current:find("petMoveActive", 1, true)
 
   local macroIndex = GetMacroIndexByName(self.MACRO_NAME)
-  local unlockOn = self:ShouldUnlockCursorDuringPetMove()
   self:Print(
     (conditionOk and "|cff00ff00CM condition: installed|r" or "|cffffcc00CM condition: missing|r")
       .. " | "
       .. (macroIndex > 0 and ("|cff00ff00Macro: " .. self.MACRO_NAME .. " #" .. macroIndex .. "|r") or "|cffffcc00Macro: missing|r")
   )
-  self:Print(
-    unlockOn and "Cursor unlock: |cff00ff00on|r" or "Cursor unlock: |cff00ff00off|r (reticle locked while aiming)"
-  )
   self:Print("Run |cff00ff00/cmpet install|r to reinstall. Bind |cff00ff00` |r to the macro.")
-  self:Print("|cff00ff00/cmpet unlock|r toggles free-cursor mode during pet move.")
 end
 
 SLASH_COMBATMODE_RETICLEPETMOVETO1 = "/cmpet"
@@ -183,17 +169,6 @@ SlashCmdList["COMBATMODE_RETICLEPETMOVETO"] = function(msg)
   msg = strtrim(msg or ""):lower()
   if msg == "install" or msg == "setup" then
     Bridge:InstallAll(false)
-  elseif msg == "unlock" then
-    if not CombatMode_ReticlePetMoveToDB then
-      CombatMode_ReticlePetMoveToDB = {}
-    end
-    local enable = not Bridge:ShouldUnlockCursorDuringPetMove()
-    CombatMode_ReticlePetMoveToDB.unlockCursor = enable
-    if enable then
-      Bridge:Print("Cursor unlock during pet move: |cff00ff00on|r (free mouse while aiming).")
-    else
-      Bridge:Print("Cursor unlock during pet move: |cff00ff00off|r (reticle stays locked; LMB still places pet).")
-    end
   elseif msg == "macro" then
     Bridge:Print(Bridge.MACRO_TEXT:gsub("\n", " "))
   elseif msg == "condition" then

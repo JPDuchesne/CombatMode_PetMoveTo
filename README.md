@@ -4,21 +4,14 @@ Companion addon for [Combat Mode](https://github.com/djsmithdev/combatmode) + hu
 
 On login it **automatically**:
 
-1. Installs the Combat Mode **custom condition** (ground spells + optional pet-move cursor unlock)
+1. Installs the Combat Mode **custom condition** (unlocks cursor for ground spells + pet move)
 2. Creates/updates the **`CM Pet Move`** character macro
 
 You only need to **bind `` ` ``** (or any key) to that macro.
 
-## Default behavior
+## How it works
 
-**Reticle stays locked** while you aim the pet-move ring. During the ring, LMB is temporarily bound to **Camera Or Select Or Move** (ground confirm) instead of your CM click-cast macro.
-
-| Mode | `` ` `` | While aiming | LMB |
-|------|--------|--------------|-----|
-| **Default** | Start ring | Reticle **locked** | Places pet (not your click-cast macro) |
-| `/cmpet unlock` (on) | Start ring | Cursor **unlocked** | Places pet |
-
-This fixes "cursor unlocks before I confirm" when you want to aim with the CM crosshair, not a free mouse.
+When you press the macro, the addon signals Combat Mode to **unlock the cursor** so you can aim the pet-move ring with your mouse. LMB confirms placement. CM re-locks the cursor automatically when the session ends.
 
 ## Install
 
@@ -34,23 +27,21 @@ Requires **Combat Mode** enabled. `/reload` then `/cmpet install`.
 |---------|--------|
 | `/cmpet` | Status |
 | `/cmpet install` | Reinstall condition + macro |
-| `/cmpet unlock` | Toggle free-cursor during pet move (default **off**) |
 | `/cmpet macro` | Print macro text |
 | `/cmpet condition` | Print CM custom condition |
 
-## Flow (default)
+## Flow
 
-- `` ` `` → ring up, **reticle stays locked**, LMB freed from click-cast
-- **LMB** → place pet → click-cast restored
-- `` ` `` again or **Esc** → cancel
+- `` ` `` → cursor unlocks, pet-move ring appears
+- **LMB** → place pet → CM re-locks cursor
+- `` ` `` again or **Esc** → cancel → CM re-locks cursor
 
 ## Session lifecycle
 
-The macro calls `CombatMode_ReticlePetMoveTo:Activate()` and `CombatMode_ReticlePetMoveTo:Cancel()` — the addon owns all session state internally.
+The macro calls `CombatMode_ReticlePetMoveTo:Activate()` and `CombatMode_ReticlePetMoveTo:Cancel()`. The addon owns session state; CM owns cursor state.
 
-- **Start**: `Activate()` sets a timestamp and shows the session frame (OnUpdate begins).
-- **End**: `SpellStopTargeting` hook detects confirm/cancel and hides the frame (OnUpdate stops).
-- **LMB fallback**: 0.5s timer in case `SpellStopTargeting` does not fire on `/petmoveto` confirm (it's not a spell).
+- **Start**: `Activate()` sets a timestamp and shows the session frame (OnUpdate begins). CM's custom condition sees `WantsCursorUnlock()` return true and unlocks the cursor.
+- **End**: `SpellStopTargeting` hook clears the timestamp and hides the frame. CM's condition returns false on its next frame and re-locks the cursor.
 - **Timeout**: 30s safety net via OnUpdate.
 - **Idle**: frame is hidden — zero CPU cost.
 
@@ -72,5 +63,3 @@ if SpellIsTargeting() then return true end
 if CombatMode_ReticlePetMoveTo:WantsCursorUnlock() then return true end
 return false
 ```
-
-With default settings, `WantsCursorUnlock()` is false during pet move — only traps/other ground spells unlock via `SpellIsTargeting()`.
