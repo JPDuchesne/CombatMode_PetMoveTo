@@ -16,7 +16,7 @@ You only need to **bind `` ` ``** (or any key) to that macro.
 | Mode | `` ` `` | While aiming | LMB |
 |------|--------|--------------|-----|
 | **Default** | Start ring | Reticle **locked** | Places pet (not your click-cast macro) |
-| `/cpmb unlock` (on) | Start ring | Cursor **unlocked** | Places pet |
+| `/cmpet unlock` (on) | Start ring | Cursor **unlocked** | Places pet |
 
 This fixes "cursor unlocks before I confirm" when you want to aim with the CM crosshair, not a free mouse.
 
@@ -26,17 +26,17 @@ Copy this folder to:
 
 `World of Warcraft/_retail_/Interface/AddOns/CombatMode_ReticlePetMoveTo`
 
-Requires **Combat Mode** enabled. `/reload` then `/cpmb install`.
+Requires **Combat Mode** enabled. `/reload` then `/cmpet install`.
 
 ## Slash commands
 
 | Command | Action |
 |---------|--------|
-| `/cpmb` | Status |
-| `/cpmb install` | Reinstall condition + macro |
-| `/cpmb unlock` | Toggle free-cursor during pet move (default **off**) |
-| `/cpmb macro` | Print macro text |
-| `/cpmb condition` | Print CM custom condition |
+| `/cmpet` | Status |
+| `/cmpet install` | Reinstall condition + macro |
+| `/cmpet unlock` | Toggle free-cursor during pet move (default **off**) |
+| `/cmpet macro` | Print macro text |
+| `/cmpet condition` | Print CM custom condition |
 
 ## Flow (default)
 

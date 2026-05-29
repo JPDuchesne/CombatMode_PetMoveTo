@@ -98,7 +98,7 @@ function Bridge:InstallMacro()
 
   local _, perCharCount = GetNumMacros()
   if perCharCount >= 18 then
-    return false, "character macro limit reached (18). Delete one macro and run |cff00ff00/cpmb install|r."
+    return false, "character macro limit reached (18). Delete one macro and run |cff00ff00/cmpet install|r."
   end
 
   macroIndex = CreateMacro(self.MACRO_NAME, self.MACRO_ICON, self.MACRO_TEXT, true)
@@ -154,7 +154,7 @@ function Bridge:TryAutoInstall()
   if ok and not CombatMode_ReticlePetMoveToDB.greeted then
     CombatMode_ReticlePetMoveToDB.greeted = true
     self:Print("Installed CM custom condition + |cff00ff00" .. self.MACRO_NAME .. "|r macro.")
-    self:Print("Bind |cff00ff00` |r to that macro. Use |cff00ff00/cpmb|r for help.")
+    self:Print("Bind |cff00ff00` |r to that macro. Use |cff00ff00/cmpet|r for help.")
   end
 end
 
@@ -174,11 +174,11 @@ function Bridge:ShowStatus()
   self:Print(
     unlockOn and "Cursor unlock: |cff00ff00on|r" or "Cursor unlock: |cff00ff00off|r (reticle locked while aiming)"
   )
-  self:Print("Run |cff00ff00/cpmb install|r to reinstall. Bind |cff00ff00` |r to the macro.")
-  self:Print("|cff00ff00/cpmb unlock|r toggles free-cursor mode during pet move.")
+  self:Print("Run |cff00ff00/cmpet install|r to reinstall. Bind |cff00ff00` |r to the macro.")
+  self:Print("|cff00ff00/cmpet unlock|r toggles free-cursor mode during pet move.")
 end
 
-SLASH_COMBATMODE_RETICLEPETMOVETO1 = "/cpmb"
+SLASH_COMBATMODE_RETICLEPETMOVETO1 = "/cmpet"
 SlashCmdList["COMBATMODE_RETICLEPETMOVETO"] = function(msg)
   msg = strtrim(msg or ""):lower()
   if msg == "install" or msg == "setup" then
