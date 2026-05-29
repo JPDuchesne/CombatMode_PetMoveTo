@@ -1,0 +1,11 @@
+## Interface: 120005, 120001, 120000
+## Version: 1.5.0
+## Title: CM Pet Move Bridge
+## Notes: Pet-move for Combat Mode: auto-installs CM custom condition and macro; frees LMB for ground click.
+## Author: jpduchesne
+## Dependencies: CombatMode
+## SavedVariables: CMPetMoveCMBridgeDB
+## DefaultState: enabled
+
+Config.lua
+CMPetMoveCMBridge.lua
