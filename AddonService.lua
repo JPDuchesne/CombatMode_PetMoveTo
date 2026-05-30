@@ -2,6 +2,22 @@
 
 local _, ns = ...
 
+---@alias AddonErrorType "combat_lockdown"|"macro_limit"|"wow_api"
+
+---@class AddonError
+---@field type AddonErrorType
+---@field message string User-facing error description
+---@field api string? WoW API that failed (wow_api errors only)
+---@field macroName string? Macro name involved (wow_api errors only)
+---@field returnValue any? Value returned by the WoW API (wow_api errors only)
+
+---@class AddonStatus
+---@field hooked boolean Whether the cursor-lock integration hook is active
+---@field macroInstalled boolean Whether the CM Pet Move macro exists
+---@field macroIndex number WoW macro index (0 if not found)
+---@field macroName string Macro name
+
+---@class AddonService
 local AddonService = {}
 AddonService.__index = AddonService
 
@@ -13,10 +29,13 @@ AddonService.MACRO_TEXT = table.concat({
   "/run CombatMode_ReticlePetMoveTo:Activate()",
 }, "\n")
 
+---@return AddonService
 function AddonService:New()
   return setmetatable({}, self)
 end
 
+---Install or update the CM Pet Move macro.
+---Throws AddonError on failure.
 function AddonService:InstallMacro()
   if InCombatLockdown() then
     error({ type = "combat_lockdown", message = "cannot update macros in combat." }, 0)
@@ -45,6 +64,8 @@ function AddonService:InstallMacro()
   end
 end
 
+---Query current addon status (hook + macro).
+---@return AddonStatus
 function AddonService:GetStatus()
   local macroIndex = GetMacroIndexByName(self.MACRO_NAME)
   local hooked = ns.petMoveToService and ns.petMoveToService.hooked

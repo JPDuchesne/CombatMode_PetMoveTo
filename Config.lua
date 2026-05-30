@@ -2,18 +2,27 @@
 
 local ADDON, ns = ...
 
+---@class CombatMode_ReticlePetMoveTo
 local API = {}
 _G.CombatMode_ReticlePetMoveTo = API
 
--- Public API: thin delegations to services (constructed on ADDON_LOADED)
+---Start a new pet-move command. Called from the macro.
 function API:Activate()  ns.petMoveToService:Activate()                    end
+
+---Cancel the pending command (if any).
 function API:Cancel()    ns.petMoveToService:Cancel()                      end
+
+---Whether the addon is actively managing a pet-move command.
+---@return boolean
 function API:IsActive()  return ns.petMoveToService:HasPendingCommand()    end
 
+---@param msg string
 local function printMsg(msg)
   print("|cff33ff99ReticlePetMoveTo|r: " .. msg)
 end
 
+---Install the macro and print user-facing feedback.
+---@return boolean ok
 local function installMacroWithFeedback()
   local ok, err = pcall(ns.addonService.InstallMacro, ns.addonService)
 
@@ -21,12 +30,14 @@ local function installMacroWithFeedback()
     printMsg("Installed |cff00ff00" .. ns.addonService.MACRO_NAME .. "|r macro.")
     printMsg("Bind |cff00ff00` |r (or any key) to macro |cff00ff00" .. ns.addonService.MACRO_NAME .. "|r.")
   else
+    ---@cast err AddonError
     printMsg("|cffff5050" .. err.message .. "|r")
   end
 
   return ok
 end
 
+---Print addon status to chat.
 local function showStatus()
   local status = ns.addonService:GetStatus()
 
