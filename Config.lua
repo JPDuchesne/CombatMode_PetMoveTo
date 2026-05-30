@@ -5,12 +5,12 @@ _G.CombatMode_ReticlePetMoveTo = Bridge
 
 Bridge.TIMEOUT = 30
 Bridge.STOP_TARGET_GRACE = 0.35
-Bridge.CONDITION_VERSION = 4
+Bridge.CONFIRM_END_DELAY = 0.5
+Bridge.CONDITION_VERSION = 5
 
 Bridge.MACRO_NAME = "CM Pet Move"
 Bridge.MACRO_ICON = "Ability_Hunter_MastersCall"
 Bridge.MACRO_TEXT = table.concat({
-  "/run if CombatMode_ReticlePetMoveTo:IsActive() then CombatMode_ReticlePetMoveTo:Cancel() return end",
   "/petpassive",
   "/petmoveto",
   "/run CombatMode_ReticlePetMoveTo:Activate()",

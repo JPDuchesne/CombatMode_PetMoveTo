@@ -11,7 +11,7 @@ You only need to **bind `` ` ``** (or any key) to that macro.
 
 ## How it works
 
-When you press the macro, the addon signals Combat Mode to **unlock the cursor** so you can aim the pet-move ring with your mouse. LMB confirms placement. CM re-locks the cursor automatically when the session ends.
+When you press the macro, the addon signals Combat Mode to **unlock the cursor** so you can aim the pet-move ring with your mouse. Confirm with LMB, cancel with RMB or Esc. The addon explicitly re-locks the cursor when the session ends.
 
 ## Install
 
@@ -33,15 +33,18 @@ Requires **Combat Mode** enabled. `/reload` then `/cmpet install`.
 ## Flow
 
 - `` ` `` → cursor unlocks, pet-move ring appears
-- **LMB** → place pet → CM re-locks cursor
-- `` ` `` again or **Esc** → cancel → CM re-locks cursor
+- **LMB** → place pet → cursor re-locks after 0.5s
+- **RMB** → cancel → cursor re-locks immediately
+- **Esc** → cancel → cursor re-locks immediately
 
 ## Session lifecycle
 
-The macro calls `CombatMode_ReticlePetMoveTo:Activate()` and `CombatMode_ReticlePetMoveTo:Cancel()`. The addon owns session state; CM owns cursor state.
+The macro calls `CombatMode_ReticlePetMoveTo:Activate()` to start a session. The addon detects session end via mouse events and re-locks the cursor explicitly.
 
 - **Start**: `Activate()` sets a timestamp and shows the session frame (OnUpdate begins). CM's custom condition sees `WantsCursorUnlock()` return true and unlocks the cursor.
-- **End**: `SpellStopTargeting` hook clears the timestamp and hides the frame. CM's condition returns false on its next frame and re-locks the cursor.
+- **End (LMB confirm)**: `GLOBAL_MOUSE_DOWN LeftButton` schedules a delayed end (0.5s) so the ground click completes before re-lock.
+- **End (RMB cancel)**: `GLOBAL_MOUSE_DOWN RightButton` ends the session immediately.
+- **End (Esc)**: `SpellStopTargeting` hook catches Esc and ends the session immediately.
 - **Timeout**: 30s safety net via OnUpdate.
 - **Idle**: frame is hidden — zero CPU cost.
 
@@ -50,7 +53,6 @@ The macro calls `CombatMode_ReticlePetMoveTo:Activate()` and `CombatMode_Reticle
 **Macro** `CM Pet Move`:
 
 ```lua
-/run if CombatMode_ReticlePetMoveTo:IsActive() then CombatMode_ReticlePetMoveTo:Cancel() return end
 /petpassive
 /petmoveto
 /run CombatMode_ReticlePetMoveTo:Activate()
