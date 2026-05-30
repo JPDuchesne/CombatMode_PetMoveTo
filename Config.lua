@@ -1,82 +1,28 @@
---[[ Config.lua — bundled CM custom condition + pet-move macro installer ]]
+--[[ Config.lua — public API, dependency wiring, macro installer, slash commands ]]
 
-local Bridge = {}
-_G.CombatMode_ReticlePetMoveTo = Bridge
+local ADDON, ns = ...
 
-Bridge.TIMEOUT = 30
-Bridge.STOP_TARGET_GRACE = 0.35
-Bridge.CONFIRM_END_DELAY = 0.5
-Bridge.CONDITION_VERSION = 5
+local API = {}
+_G.CombatMode_ReticlePetMoveTo = API
 
-Bridge.MACRO_NAME = "CM Pet Move"
-Bridge.MACRO_ICON = "Ability_Hunter_MastersCall"
-Bridge.MACRO_TEXT = table.concat({
+API.MACRO_NAME = "CM Pet Move"
+API.MACRO_ICON = "Ability_Hunter_MastersCall"
+API.MACRO_TEXT = table.concat({
   "/petpassive",
   "/petmoveto",
   "/run CombatMode_ReticlePetMoveTo:Activate()",
 }, "\n")
 
-Bridge.CONDITION_BODY = table.concat({
-  "if SpellIsTargeting() then return true end",
-  "if CombatMode_ReticlePetMoveTo:WantsCursorUnlock() then return true end",
-  "return false",
-}, "\n")
+-- Public API: thin delegations to the service (constructed on ADDON_LOADED)
+function API:Activate()  ns.petMoveToService:Activate()                    end
+function API:Cancel()    ns.petMoveToService:Cancel()                      end
+function API:IsActive()  return ns.petMoveToService:HasPendingCommand()    end
 
-function Bridge:GetCM()
-  return LibStub("AceAddon-3.0"):GetAddon("CombatMode", true)
+function API:Print(msg)
+  print("|cff33ff99ReticlePetMoveTo|r: " .. msg)
 end
 
-function Bridge:IsActive()
-  local t = self.activeTimestamp
-  if type(t) ~= "number" then
-    return false
-  end
-  if GetTime() - t > self.TIMEOUT then
-    self.activeTimestamp = nil
-    return false
-  end
-  return true
-end
-
-function Bridge:WantsCursorUnlock()
-  return self:IsActive()
-end
-
-function Bridge:ConditionNeedsUpdate(current, global)
-  if not current:find("CombatMode_ReticlePetMoveTo:WantsCursorUnlock", 1, true) then
-    return true
-  end
-  if current:find("petMoveActive", 1, true) then
-    return true
-  end
-  return (global.cpmbConditionVersion or 0) < self.CONDITION_VERSION
-end
-
-function Bridge:InstallCMCondition()
-  local cm = self:GetCM()
-  if not cm or not cm.DB or not cm.DB.global then
-    return false, "Combat Mode is not loaded."
-  end
-
-  local global = cm.DB.global
-  local current = global.customCondition or ""
-
-  if not self:ConditionNeedsUpdate(current, global) then
-    return true, "Combat Mode custom condition already installed."
-  end
-
-  -- Preserve unrelated user conditions; detect ours (old or new name) via WantsCursorUnlock.
-  if current:match("%S") and not current:find("petMoveActive", 1, true) and not current:find("WantsCursorUnlock", 1, true) then
-    global.customCondition = "if CombatMode_ReticlePetMoveTo:WantsCursorUnlock() then return true end\n" .. current
-  else
-    global.customCondition = self.CONDITION_BODY
-  end
-
-  global.cpmbConditionVersion = self.CONDITION_VERSION
-  return true, "installed Combat Mode custom condition."
-end
-
-function Bridge:InstallMacro()
+function API:InstallMacro()
   if InCombatLockdown() then
     return false, "cannot update macros in combat."
   end
@@ -100,93 +46,99 @@ function Bridge:InstallMacro()
   return true, "created macro |cff00ff00" .. self.MACRO_NAME .. "|r (#" .. macroIndex .. ")."
 end
 
-function Bridge:Print(msg)
-  print("|cff33ccffCM_ReticlePetMoveTo:|r " .. msg)
-end
-
-function Bridge:InstallAll(silent)
-  local okCM, msgCM = self:InstallCMCondition()
+function API:InstallAll(silent)
   local okMacro, msgMacro = self:InstallMacro()
 
   if not silent then
-    if okCM then
-      self:Print(msgCM)
-    else
-      self:Print("|cffff5050" .. msgCM .. "|r")
-    end
     if okMacro then
       self:Print(msgMacro)
     else
       self:Print("|cffff5050" .. msgMacro .. "|r")
     end
-    if okCM and okMacro then
+    if okMacro then
       self:Print("Bind |cff00ff00` |r (or any key) to macro |cff00ff00" .. self.MACRO_NAME .. "|r.")
     end
   end
 
-  return okCM and okMacro
+  return okMacro
 end
 
-function Bridge:TryAutoInstall()
+function API:TryAutoInstall()
   if InCombatLockdown() then
     self.pendingInstall = true
     return
   end
 
   self.pendingInstall = false
-  local okCM = self:InstallCMCondition()
   local okMacro = self:InstallMacro()
-  local ok = okCM and okMacro
 
   if not CombatMode_ReticlePetMoveToDB then
     CombatMode_ReticlePetMoveToDB = {}
   end
 
-  if ok and not CombatMode_ReticlePetMoveToDB.greeted then
+  if okMacro and not CombatMode_ReticlePetMoveToDB.greeted then
     CombatMode_ReticlePetMoveToDB.greeted = true
-    self:Print("Installed CM custom condition + |cff00ff00" .. self.MACRO_NAME .. "|r macro.")
+    self:Print("Installed |cff00ff00" .. self.MACRO_NAME .. "|r macro.")
     self:Print("Bind |cff00ff00` |r to that macro. Use |cff00ff00/cmpet|r for help.")
   end
 end
 
-function Bridge:ShowStatus()
-  local cm = self:GetCM()
-  local current = cm and cm.DB and cm.DB.global and (cm.DB.global.customCondition or "") or ""
-  local conditionOk = current:find("CombatMode_ReticlePetMoveTo:WantsCursorUnlock", 1, true)
-    and not current:find("petMoveActive", 1, true)
-
+function API:ShowStatus()
   local macroIndex = GetMacroIndexByName(self.MACRO_NAME)
+  local hooked = ns.petMoveToService and ns.petMoveToService.hooked
+
   self:Print(
-    (conditionOk and "|cff00ff00CM condition: installed|r" or "|cffffcc00CM condition: missing|r")
+    (hooked and "|cff00ff00CM hook: installed|r" or "|cffffcc00CM hook: not installed|r")
       .. " | "
       .. (macroIndex > 0 and ("|cff00ff00Macro: " .. self.MACRO_NAME .. " #" .. macroIndex .. "|r") or "|cffffcc00Macro: missing|r")
   )
-  self:Print("Run |cff00ff00/cmpet install|r to reinstall. Bind |cff00ff00` |r to the macro.")
+  self:Print("Run |cff00ff00/cmpet install|r to reinstall macro. Bind |cff00ff00` |r to the macro.")
 end
 
 SLASH_COMBATMODE_RETICLEPETMOVETO1 = "/cmpet"
 SlashCmdList["COMBATMODE_RETICLEPETMOVETO"] = function(msg)
   msg = strtrim(msg or ""):lower()
   if msg == "install" or msg == "setup" then
-    Bridge:InstallAll(false)
+    API:InstallAll(false)
   elseif msg == "macro" then
-    Bridge:Print(Bridge.MACRO_TEXT:gsub("\n", " "))
-  elseif msg == "condition" then
-    Bridge:Print(Bridge.CONDITION_BODY)
+    API:Print(API.MACRO_TEXT:gsub("\n", " "))
   else
-    Bridge:ShowStatus()
+    API:ShowStatus()
   end
 end
 
+-- Dependency wiring: construct service on ADDON_LOADED with CM injected
+local frame = CreateFrame("Frame")
+frame:RegisterEvent("ADDON_LOADED")
+frame:SetScript("OnEvent", function(_, _, addon)
+  if addon ~= ADDON then return end
+
+  local cm = LibStub("AceAddon-3.0"):GetAddon("CombatMode", true)
+  local service = ns.PetMoveToService:New(cm)
+  service:Setup()
+  ns.petMoveToService = service
+
+  -- Hook CM's cursor-lock decision — integration code, not service logic.
+  -- Must be after ns.petMoveToService assignment: the closure calls
+  -- API:IsActive() → ns.petMoveToService:HasPendingCommand().
+  if cm.ShouldFreeLookBeOff then
+    local original = cm.ShouldFreeLookBeOff
+    cm.ShouldFreeLookBeOff = function(...)
+      if API:IsActive() then return true end
+      return original(...)
+    end
+    service.hooked = true
+  end
+
+  API:TryAutoInstall()
+  frame:UnregisterEvent("ADDON_LOADED")
+end)
+
+-- Deferred install for combat lockdown
 local installFrame = CreateFrame("Frame")
-installFrame:RegisterEvent("PLAYER_LOGIN")
 installFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-installFrame:SetScript("OnEvent", function(_, event)
-  if event == "PLAYER_LOGIN" then
-    C_Timer.After(0, function()
-      Bridge:TryAutoInstall()
-    end)
-  elseif event == "PLAYER_REGEN_ENABLED" and Bridge.pendingInstall then
-    Bridge:TryAutoInstall()
+installFrame:SetScript("OnEvent", function()
+  if API.pendingInstall then
+    API:TryAutoInstall()
   end
 end)
