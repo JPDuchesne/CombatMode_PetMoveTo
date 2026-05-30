@@ -11,10 +11,24 @@ PetMoveToService.STARTUP_GRACE = 0.35  -- Ignore SpellStopTargeting / re-activat
 PetMoveToService.RELOCK_DELAY  = 0.5   -- Wait after LMB confirm before re-locking cursor
 
 function PetMoveToService:New(cm)
-  return setmetatable({
+  if not cm then error("PetMoveToService requires a CombatMode addon reference.", 0) end
+
+  local service = setmetatable({
     cm = cm,
     pendingCommand = nil,
   }, self)
+
+  hooksecurefunc("SpellStopTargeting", function()
+    service:OnSpellStopTargeting()
+  end)
+
+  local frame = CreateFrame("Frame")
+  frame:RegisterEvent("GLOBAL_MOUSE_DOWN")
+  frame:SetScript("OnEvent", function(_, _, button)
+    service:OnMouseDown(button)
+  end)
+
+  return service
 end
 
 function PetMoveToService:Activate()
@@ -89,19 +103,6 @@ function PetMoveToService:OnSpellStopTargeting()
   if (GetTime() - self.pendingCommand.startTime) < self.STARTUP_GRACE then return end
 
   self:CancelCommand(self.pendingCommand)
-end
-
-function PetMoveToService:Setup()
-  hooksecurefunc("SpellStopTargeting", function()
-    self:OnSpellStopTargeting()
-  end)
-
-  local service = self
-  local frame = CreateFrame("Frame")
-  frame:RegisterEvent("GLOBAL_MOUSE_DOWN")
-  frame:SetScript("OnEvent", function(_, _, button)
-    service:OnMouseDown(button)
-  end)
 end
 
 ns.PetMoveToService = PetMoveToService

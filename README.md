@@ -100,7 +100,7 @@ stateDiagram-v2
 
 ## Architecture
 
-Three objects, three files, connected via WoW's private `ns` namespace. Only the public API touches `_G`.
+Four objects, four files, connected via WoW's private `ns` namespace. Only the public API touches `_G`.
 
 ```mermaid
 flowchart TD
@@ -108,32 +108,38 @@ flowchart TD
         API["CombatMode_ReticlePetMoveTo\n(public API + wiring)"]
     end
 
-    subgraph private ["ns (private between files)"]
-        Service["ns.petMoveToService\n(PetMoveToService instance)"]
+    subgraph private ["ns (private)"]
+        AddonSvc["ns.addonService\n(AddonService instance)"]
+        PetSvc["ns.petMoveToService\n(PetMoveToService instance)"]
         CmdClass["ns.PetMoveToCommand\n(class)"]
     end
 
     Macro["Macro / CM hook"] -->|"Activate(), IsActive()"| API
-    API -->|delegates| Service
-    API -->|"injects CM on ADDON_LOADED"| Service
-    Service -->|"creates / resolves"| CmdClass
+    SlashCmd["/cmpet"] -->|"install, status"| API
+    API -->|delegates| PetSvc
+    API -->|delegates| AddonSvc
+    API -->|"injects CM on ADDON_LOADED"| PetSvc
+    PetSvc -->|"creates / resolves"| CmdClass
 ```
 
 **Files** (loaded in .toc order):
 
 | File | Role |
 |------|------|
-| `Config.lua` | Public API (`_G.CombatMode_ReticlePetMoveTo`), dependency wiring, macro installer, slash commands |
+| `Config.lua` | Public API (`_G.CombatMode_ReticlePetMoveTo`), dependency wiring, slash commands |
 | `PetMoveToCommand.lua` | Domain object — disposable state machine per activation (`targeting` / `confirmed` / `cancelled`) |
 | `PetMoveToService.lua` | Service — command lifecycle, WoW events, cursor management. CM injected via DI. |
+| `AddonService.lua` | Service — macro installation, addon status. Typed errors. |
 
 **Namespace layout:**
 
 | Name | Scope | Purpose |
 |------|-------|---------|
 | `_G.CombatMode_ReticlePetMoveTo` | Public | What macros and CM hook call |
-| `ns.petMoveToService` | Private | Singleton service instance |
-| `ns.PetMoveToService` | Private | Service class (constructed by Config.lua) |
+| `ns.addonService` | Private | Singleton AddonService instance |
+| `ns.AddonService` | Private | AddonService class (constructed by Config.lua) |
+| `ns.petMoveToService` | Private | Singleton PetMoveToService instance |
+| `ns.PetMoveToService` | Private | PetMoveToService class (constructed by Config.lua) |
 | `ns.PetMoveToCommand` | Private | Domain object class |
 
 ## Design notes
@@ -160,6 +166,13 @@ flowchart TD
 
 - **CM custom conditions** — fully preserved. The addon never touches `cm.DB.global.customCondition`. Users can freely add/edit/remove their own conditions in CM settings.
 - **CM click-casting** — no conflict. CM's click-cast bindings use `SetMouselookOverrideBinding` which only applies during mouselook. During a pending command mouselook is off, so bindings are inactive. LMB/RMB work as normal clicks.
+
+## Uninstall
+
+1. Delete the `CombatMode_ReticlePetMoveTo` folder from `Interface/AddOns/`
+2. Delete the `CM Pet Move` macro from WoW's macro UI (Esc > Macros)
+
+The macro persists in WoW's saved data because WoW has no addon uninstall hook.
 
 ## Manual setup
 

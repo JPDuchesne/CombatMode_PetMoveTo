@@ -4,9 +4,9 @@
 ## Notes: Pet-move for Combat Mode: hooks ShouldFreeLookBeOff and auto-installs macro; unlocks cursor for /petmoveto ground placement.
 ## Author: jpduchesne
 ## Dependencies: CombatMode
-## SavedVariables: CombatMode_ReticlePetMoveToDB
 ## DefaultState: enabled
 
 Config.lua
 PetMoveToCommand.lua
 PetMoveToService.lua
+AddonService.lua
