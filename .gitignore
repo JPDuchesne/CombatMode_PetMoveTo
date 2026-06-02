@@ -1,3 +1,10 @@
 .DS_Store
 *.bak
 *~
+
+lua_modules/
+.luarocks/
+.shadowenv.d/
+dist/
+deps/
+.dev/
