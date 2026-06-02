@@ -1,0 +1,66 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Assemble a release artifact from src/ and .toc.
+#
+# Reads version from .toc, copies source files into dist/CombatMode_PetMoveTo/,
+# produces dist/CombatMode_PetMoveTo-<version>.zip.
+#
+# Usage:
+#   ./bin/package            # reads version from .toc
+#   ./bin/package 0.2.0      # explicit version override
+
+require "fileutils"
+require "pathname"
+
+ROOT      = Pathname.new(File.expand_path("..", __dir__))
+TOC_FILE  = ROOT.join("CombatMode_PetMoveTo.toc")
+DIST_DIR  = ROOT.join("dist")
+ADDON_DIR = DIST_DIR.join("CombatMode_PetMoveTo")
+
+def read_toc_version
+  TOC_FILE.each_line do |line|
+    if (m = line.match(/^## Version:\s*(.+)/))
+      return m[1].strip
+    end
+  end
+  raise "No ## Version: found in #{TOC_FILE}"
+end
+
+def collect_source_files
+  files = [TOC_FILE]
+  TOC_FILE.each_line do |line|
+    line = line.strip
+    next if line.empty? || line.start_with?("#")
+
+    path = ROOT.join(line.tr("\\", "/"))
+    files << path if path.exist?
+  end
+  files
+end
+
+def main
+  version = ARGV[0] || read_toc_version
+  puts "Packaging CombatMode_PetMoveTo v#{version}"
+
+  FileUtils.rm_rf(DIST_DIR)
+  FileUtils.mkdir_p(ADDON_DIR)
+
+  collect_source_files.each do |src|
+    relative = src.relative_path_from(ROOT)
+    dest = ADDON_DIR.join(relative)
+    FileUtils.mkdir_p(dest.dirname)
+    FileUtils.cp(src, dest)
+  end
+
+  zip_name = "CombatMode_PetMoveTo-#{version}.zip"
+  Dir.chdir(DIST_DIR) do
+    system("zip", "-r", "-q", zip_name, "CombatMode_PetMoveTo", exception: true)
+  end
+
+  zip_path = DIST_DIR.join(zip_name)
+  puts "Created #{zip_path} (#{File.size(zip_path)} bytes)"
+  zip_path.to_s
+end
+
+main

@@ -1,0 +1,17 @@
+package-as: CombatMode_PetMoveTo
+
+ignore:
+  - test
+  - bin
+  - lib
+  - .github
+  - .cursor
+  - .luarocks
+  - lua_modules
+  - dist
+  - dev.yml
+  - dependencies.rb
+  - deps.lock
+  - "*.rockspec"
+  - .gitignore
+  - .pkgmeta
