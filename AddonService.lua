@@ -26,7 +26,7 @@ AddonService.MACRO_ICON = "Ability_Hunter_MastersCall"
 AddonService.MACRO_TEXT = table.concat({
   "/petpassive",
   "/petmoveto",
-  "/run CombatMode_ReticlePetMoveTo:Activate()",
+  "/run CombatMode_PetMoveTo:Activate()",
 }, "\n")
 
 ---@return AddonService

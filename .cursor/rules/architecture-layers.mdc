@@ -11,6 +11,6 @@ Use DI: inject dependencies at construction, don't reach into globals from servi
 
 ## This addon's layers
 
-- **Public API** (`Config.lua`) — `_G.CombatMode_ReticlePetMoveTo`. Thin facade with delegations to the service. Dependency wiring on `ADDON_LOADED`. Macro installer, slash commands.
+- **Public API** (`Config.lua`) — `_G.CombatMode_PetMoveTo`. Thin facade with delegations to the service. Dependency wiring on `ADDON_LOADED`. Macro installer, slash commands.
 - **Service** (`PetMoveToService.lua`) — `ns.PetMoveToService` class, `ns.petMoveToService` instance. Manages command lifecycle, WoW events, cursor re-lock. CM injected at construction.
 - **Domain object** (`PetMoveToCommand.lua`) — `ns.PetMoveToCommand` class. Disposable state machine per activation. No knowledge of CM, cursors, or events.

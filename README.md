@@ -1,4 +1,4 @@
-# CombatMode: Reticle Pet Move To
+# CombatMode: Pet Move To
 
 Companion addon for [Combat Mode](https://github.com/djsmithdev/combatmode) + hunter `/petmoveto`.
 
@@ -13,7 +13,7 @@ When you press the macro, the addon tells Combat Mode to **unlock the cursor** s
 Copy this folder to:
 
 ```
-World of Warcraft/_retail_/Interface/AddOns/CombatMode_ReticlePetMoveTo
+World of Warcraft/_retail_/Interface/AddOns/CombatMode_PetMoveTo
 ```
 
 Requires **Combat Mode** enabled (hard dependency — addon won't load without it).
@@ -39,7 +39,7 @@ Run `/cmpet install` to force-reinstall the macro after addon updates.
 
 ## Command lifecycle
 
-The macro calls `CombatMode_ReticlePetMoveTo:Activate()` which creates a pending command. The addon detects confirmation or cancellation via mouse events and re-locks the cursor explicitly.
+The macro calls `CombatMode_PetMoveTo:Activate()` which creates a pending command. The addon detects confirmation or cancellation via mouse events and re-locks the cursor explicitly.
 
 - **Start**: `Activate()` creates a `PetMoveToCommand`. CM's `ShouldFreeLookBeOff` hook returns true, CM unlocks cursor.
 - **End (LMB)**: command finalized immediately (`Confirm()`), cursor re-lock delayed 0.5s so the ground click completes.
@@ -105,7 +105,7 @@ Four objects, four files, connected via WoW's private `ns` namespace. Only the p
 ```mermaid
 flowchart TD
     subgraph global ["_G (public)"]
-        API["CombatMode_ReticlePetMoveTo\n(public API + wiring)"]
+        API["CombatMode_PetMoveTo\n(public API + wiring)"]
     end
 
     subgraph private ["ns (private)"]
@@ -126,7 +126,7 @@ flowchart TD
 
 | File | Role |
 |------|------|
-| `Config.lua` | Public API (`_G.CombatMode_ReticlePetMoveTo`), dependency wiring, slash commands |
+| `Config.lua` | Public API (`_G.CombatMode_PetMoveTo`), dependency wiring, slash commands |
 | `PetMoveToCommand.lua` | Domain object — disposable state machine per activation (`targeting` / `confirmed` / `cancelled`) |
 | `PetMoveToService.lua` | Service — command lifecycle, WoW events, cursor management. CM injected via DI. |
 | `AddonService.lua` | Service — macro installation, addon status. Typed errors. |
@@ -135,7 +135,7 @@ flowchart TD
 
 | Name | Scope | Purpose |
 |------|-------|---------|
-| `_G.CombatMode_ReticlePetMoveTo` | Public | What macros and CM hook call |
+| `_G.CombatMode_PetMoveTo` | Public | What macros and CM hook call |
 | `ns.addonService` | Private | Singleton AddonService instance |
 | `ns.AddonService` | Private | AddonService class (constructed by Config.lua) |
 | `ns.petMoveToService` | Private | Singleton PetMoveToService instance |
@@ -169,7 +169,7 @@ flowchart TD
 
 ## Uninstall
 
-1. Delete the `CombatMode_ReticlePetMoveTo` folder from `Interface/AddOns/`
+1. Delete the `CombatMode_PetMoveTo` folder from `Interface/AddOns/`
 2. Delete the `CM Pet Move` macro from WoW's macro UI (Esc > Macros)
 
 The macro persists in WoW's saved data because WoW has no addon uninstall hook.
@@ -181,5 +181,5 @@ The macro persists in WoW's saved data because WoW has no addon uninstall hook.
 ```
 /petpassive
 /petmoveto
-/run CombatMode_ReticlePetMoveTo:Activate()
+/run CombatMode_PetMoveTo:Activate()
 ```
