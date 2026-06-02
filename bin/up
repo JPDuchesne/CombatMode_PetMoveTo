@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Project-specific setup — runs after `dev up` installs deps from lockfile.
+# Initializes LuaRocks for project-local lua_modules/ if not already set up.
+
+require "fileutils"
+
+ROOT = File.expand_path("..", __dir__)
+Dir.chdir(ROOT)
+
+def run(cmd)
+  puts "==> #{cmd}"
+  system(cmd, exception: true)
+end
+
+unless File.exist?(File.join(ROOT, ".luarocks"))
+  run("luarocks init --lua-version 5.1")
+end
+
+run("luarocks install luaunit --tree lua_modules")
+
+puts "Done. Run `dev test` to run tests."
