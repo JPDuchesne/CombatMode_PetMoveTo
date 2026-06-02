@@ -1,0 +1,151 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Release a new version of CombatMode_PetMoveTo.
+#
+# 1. Ensure clean tree + on main
+# 2. Auto-increment patch version (or accept explicit)
+# 3. Bump ## Version: in .toc, commit + tag
+# 4. Push main + tag
+# 5. Run bin/package
+# 6. gh release create with zip attached
+# 7. Upload to CurseForge via API (if CF_API_KEY set)
+#
+# Usage:
+#   ./bin/release                # auto-increments patch (0.1.0 → 0.1.1)
+#   ./bin/release 0.2.0          # explicit version
+
+require "pathname"
+require "open3"
+require "json"
+require "net/http"
+
+ROOT         = Pathname.new(File.expand_path("..", __dir__))
+TOC_FILE     = ROOT.join("CombatMode_PetMoveTo.toc")
+CURSEFORGE_PROJECT_ID = ENV.fetch("CF_PROJECT_ID", nil)
+
+def main
+  Dir.chdir(ROOT)
+  ensure_clean_tree!
+  ensure_on_main!
+
+  current = read_toc_version
+  new_version = ARGV[0] || auto_increment(current)
+
+  puts "Releasing CombatMode_PetMoveTo: #{current} → #{new_version}"
+
+  bump_toc_version(current, new_version)
+  commit_and_tag(new_version)
+  push(new_version)
+
+  zip_path = run!("ruby", "bin/package", new_version).strip
+  create_github_release(new_version, zip_path)
+
+  if ENV["CF_API_KEY"] && CURSEFORGE_PROJECT_ID
+    upload_to_curseforge(new_version, zip_path)
+  else
+    puts "Skipping CurseForge upload (set CF_API_KEY and CF_PROJECT_ID to enable)"
+  end
+
+  puts "v#{new_version} released!"
+end
+
+def read_toc_version
+  TOC_FILE.each_line do |line|
+    if (m = line.match(/^## Version:\s*(.+)/))
+      return m[1].strip
+    end
+  end
+  raise "No ## Version: found in #{TOC_FILE}"
+end
+
+def auto_increment(version)
+  parts = version.split(".").map(&:to_i)
+  parts[-1] += 1
+  parts.join(".")
+end
+
+def ensure_clean_tree!
+  status = `git status --porcelain`.strip
+  return if status.empty?
+
+  abort "Working tree is not clean. Commit or stash changes first.\n#{status}"
+end
+
+def ensure_on_main!
+  branch = `git branch --show-current`.strip
+  return if branch == "main"
+
+  abort "Must be on main branch (currently on #{branch})."
+end
+
+def run!(*cmd)
+  out, err, status = Open3.capture3(*cmd)
+  raise "#{cmd.join(" ")} failed: #{err}" unless status.success?
+
+  out
+end
+
+def bump_toc_version(current, new_version)
+  content = TOC_FILE.read
+  TOC_FILE.write(content.sub("## Version: #{current}", "## Version: #{new_version}"))
+end
+
+def commit_and_tag(version)
+  run!("git", "add", "CombatMode_PetMoveTo.toc")
+  run!("git", "commit", "-m", "Release v#{version}")
+  run!("git", "tag", "v#{version}")
+end
+
+def push(version)
+  run!("git", "push", "origin", "main")
+  run!("git", "push", "origin", "v#{version}")
+end
+
+def create_github_release(version, zip_path)
+  run!("gh", "release", "create", "v#{version}",
+    zip_path,
+    "--title", "v#{version}",
+    "--notes", "CombatMode_PetMoveTo v#{version}")
+end
+
+def upload_to_curseforge(version, zip_path)
+  puts "Uploading to CurseForge (project #{CURSEFORGE_PROJECT_ID})..."
+
+  metadata = {
+    changelog: "Release v#{version}",
+    changelogType: "text",
+    displayName: "CombatMode_PetMoveTo-#{version}",
+    releaseType: "release",
+  }.to_json
+
+  uri = URI("https://wow.curseforge.com/api/projects/#{CURSEFORGE_PROJECT_ID}/upload-file")
+  request = Net::HTTP::Post.new(uri)
+  request["X-Api-Token"] = ENV["CF_API_KEY"]
+
+  boundary = "----RubyFormBoundary#{rand(1 << 32).to_s(16)}"
+  request["Content-Type"] = "multipart/form-data; boundary=#{boundary}"
+
+  body = ""
+  body << "--#{boundary}\r\n"
+  body << "Content-Disposition: form-data; name=\"metadata\"\r\n\r\n"
+  body << metadata << "\r\n"
+  body << "--#{boundary}\r\n"
+  body << "Content-Disposition: form-data; name=\"file\"; filename=\"#{File.basename(zip_path)}\"\r\n"
+  body << "Content-Type: application/zip\r\n\r\n"
+  body << File.binread(zip_path) << "\r\n"
+  body << "--#{boundary}--\r\n"
+  request.body = body
+
+  response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
+    http.request(request)
+  end
+
+  if response.is_a?(Net::HTTPSuccess)
+    puts "CurseForge upload complete."
+  else
+    warn "CurseForge upload failed: #{response.code} #{response.body}"
+  end
+end
+
+main
