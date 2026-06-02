@@ -2,9 +2,9 @@
 
 local ADDON, ns = ...
 
----@class CombatMode_ReticlePetMoveTo
+---@class CombatMode_PetMoveTo
 local API = {}
-_G.CombatMode_ReticlePetMoveTo = API
+_G.CombatMode_PetMoveTo = API
 
 ---Start a new pet-move command. Called from the macro.
 function API:Activate()  ns.petMoveToService:Activate()                    end
@@ -18,7 +18,7 @@ function API:IsActive()  return ns.petMoveToService:HasPendingCommand()    end
 
 ---@param msg string
 local function printMsg(msg)
-  print("|cff33ff99ReticlePetMoveTo|r: " .. msg)
+  print("|cff33ff99PetMoveTo|r: " .. msg)
 end
 
 ---Install the macro and print user-facing feedback.
@@ -49,8 +49,8 @@ local function showStatus()
   printMsg("Run |cff00ff00/cmpet install|r to reinstall macro. Bind |cff00ff00` |r to the macro.")
 end
 
-SLASH_COMBATMODE_RETICLEPETMOVETO1 = "/cmpet"
-SlashCmdList["COMBATMODE_RETICLEPETMOVETO"] = function(msg)
+SLASH_COMBATMODE_PETMOVETO1 = "/cmpet"
+SlashCmdList["COMBATMODE_PETMOVETO"] = function(msg)
   msg = strtrim(msg or ""):lower()
   if msg == "install" or msg == "setup" then
     installMacroWithFeedback()
