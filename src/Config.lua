@@ -56,6 +56,12 @@ SlashCmdList["COMBATMODE_PETMOVETO"] = function(msg)
     installMacroWithFeedback()
   elseif msg == "macro" then
     printMsg(ns.addonService.MACRO_TEXT:gsub("\n", " "))
+  elseif msg == "e2e" then
+    if ns.E2E then
+      ns.E2E:Run()
+    else
+      printMsg("|cffff5050E2E tests not loaded.|r")
+    end
   else
     showStatus()
   end
