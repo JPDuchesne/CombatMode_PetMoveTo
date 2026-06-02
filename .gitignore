@@ -8,3 +8,7 @@ lua_modules/
 dist/
 deps/
 .dev/
+
+# luarocks init artifacts
+/luarocks
+/lua
