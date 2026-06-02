@@ -10,3 +10,9 @@ src/Config.lua
 src/PetMoveToCommand.lua
 src/PetMoveToService.lua
 src/AddonService.lua
+
+# E2E test runner (safe to include — tests only run via /cmpet e2e)
+test/e2e/e2e_runner.lua
+test/e2e/PetMoveToCommand_e2e.lua
+test/e2e/PetMoveToService_e2e.lua
+test/e2e/AddonService_e2e.lua
