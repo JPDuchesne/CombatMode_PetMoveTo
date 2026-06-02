@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+LUA="${LUA:-luajit}"
+
+# Lua module paths: project root (for test.helpers.*) + lua_modules (for luaunit)
+export LUA_PATH="./?.lua;./?/init.lua;./lua_modules/share/lua/5.1/?.lua;./lua_modules/share/lua/5.1/?/init.lua;;"
+export LUA_CPATH="./lua_modules/lib/lua/5.1/?.so;;"
+
+if ! "$LUA" -e 'require("luaunit")' 2>/dev/null; then
+  echo "LuaUnit not found. Run: dev up (or ./bin/up)" >&2
+  exit 1
+fi
+
+failures=0
+total=0
+
+for test_file in test/unit/*_test.lua; do
+  [ -e "$test_file" ] || continue
+  total=$((total + 1))
+  echo "=== $test_file ==="
+  if ! "$LUA" "$test_file"; then
+    failures=$((failures + 1))
+  fi
+  echo
+done
+
+echo "=== Summary: $((total - failures))/$total test files passed ==="
+
+if [ "$failures" -gt 0 ]; then
+  exit 1
+fi
