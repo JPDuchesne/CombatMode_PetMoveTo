@@ -1,4 +1,4 @@
---[[ AddonService.lua — macro installation, addon status ]]
+--[[ AddonService.lua — macro installation, addon status, slash commands ]]
 
 local _, ns = ...
 
@@ -76,6 +76,55 @@ function AddonService:GetStatus()
     macroIndex = macroIndex,
     macroName = self.MACRO_NAME,
   }
+end
+
+-- Slash commands and user-facing feedback
+
+---Print a color-coded addon message to chat.
+---@param msg string
+function AddonService:PrintMsg(msg)
+  print("|cff33ff99PetMoveTo|r: " .. msg)
+end
+
+---Install the macro and print user-facing feedback.
+---@return boolean ok
+function AddonService:InstallMacroWithFeedback()
+  local ok, err = pcall(self.InstallMacro, self)
+
+  if ok then
+    self:PrintMsg("Installed |cff00ff00" .. self.MACRO_NAME .. "|r macro.")
+    self:PrintMsg("Bind |cff00ff00` |r (or any key) to macro |cff00ff00" .. self.MACRO_NAME .. "|r.")
+  else
+    ---@cast err AddonError
+    self:PrintMsg("|cffff5050" .. err.message .. "|r")
+  end
+
+  return ok
+end
+
+---Print addon status to chat.
+function AddonService:ShowStatus()
+  local status = self:GetStatus()
+
+  self:PrintMsg(
+    (status.hooked and "|cff00ff00CM hook: installed|r" or "|cffffcc00CM hook: not installed|r")
+      .. " | "
+      .. (status.macroInstalled and ("|cff00ff00Macro: " .. status.macroName .. " #" .. status.macroIndex .. "|r") or "|cffffcc00Macro: missing|r")
+  )
+  self:PrintMsg("Run |cff00ff00/cmpet install|r to reinstall macro. Bind |cff00ff00` |r to the macro.")
+end
+
+---Handle /cmpet slash command dispatch.
+---@param msg string raw command arguments
+function AddonService:HandleSlashCommand(msg)
+  msg = strtrim(msg or ""):lower()
+  if msg == "install" or msg == "setup" then
+    self:InstallMacroWithFeedback()
+  elseif msg == "macro" then
+    self:PrintMsg(self.MACRO_TEXT:gsub("\n", " "))
+  else
+    self:ShowStatus()
+  end
 end
 
 ns.AddonService = AddonService

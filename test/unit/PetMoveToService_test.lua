@@ -133,6 +133,14 @@ function TestPetMoveToService:test_spell_stop_when_idle_is_noop()
   lu.assertFalse(self.service:HasPendingCommand())
 end
 
+function TestPetMoveToService:test_spell_stop_when_finalized_is_noop()
+  self.service:Activate()
+  self.service.pendingCommand:Cancel()
+  WoWAPI.AdvanceTime(0.5) -- past STARTUP_GRACE
+  self.service:OnSpellStopTargeting()
+  lu.assertEquals(self.service.pendingCommand.state, "cancelled")
+end
+
 -- RelockCursor
 
 function TestPetMoveToService:test_relock_calls_lock_free_look_when_not_mouselooking()
@@ -145,6 +153,13 @@ function TestPetMoveToService:test_relock_skips_when_already_mouselooking()
   WoWAPI.SetMouselooking(true)
   self.service:RelockCursor()
   lu.assertEquals(self.cm.LockFreeLook.callCount, 0)
+end
+
+function TestPetMoveToService:test_relock_skips_when_lock_free_look_is_nil()
+  self.cm.LockFreeLook = nil
+  WoWAPI.SetMouselooking(false)
+  self.service:RelockCursor()
+  -- No error, just a no-op
 end
 
 -- ScheduleRelockCursor (timer-based resolution)

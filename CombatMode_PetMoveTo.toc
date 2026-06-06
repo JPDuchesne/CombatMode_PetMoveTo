@@ -6,7 +6,7 @@
 ## Dependencies: CombatMode
 ## DefaultState: enabled
 
-src/Config.lua
 src/PetMoveToCommand.lua
 src/PetMoveToService.lua
 src/AddonService.lua
+src/Init.lua
