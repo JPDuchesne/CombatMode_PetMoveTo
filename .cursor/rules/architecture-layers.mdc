@@ -7,10 +7,10 @@ alwaysApply: true
 
 When a codebase has distinct layers (public API, services, domain objects), each layer is its own OOP object in its own file. Do not flatten layers into a single object or file. Do not merge layers to "simplify" — the separation IS the simplicity.
 
-Use DI: inject dependencies at construction, don't reach into globals from service internals. The wiring layer (Config.lua) resolves and injects dependencies.
+Use DI: inject dependencies at construction, don't reach into globals from service internals. The wiring layer (`src/Config.lua`) resolves and injects dependencies.
 
 ## This addon's layers
 
-- **Public API** (`Config.lua`) — `_G.CombatMode_ReticlePetMoveTo`. Thin facade with delegations to the service. Dependency wiring on `ADDON_LOADED`. Macro installer, slash commands.
-- **Service** (`PetMoveToService.lua`) — `ns.PetMoveToService` class, `ns.petMoveToService` instance. Manages command lifecycle, WoW events, cursor re-lock. CM injected at construction.
-- **Domain object** (`PetMoveToCommand.lua`) — `ns.PetMoveToCommand` class. Disposable state machine per activation. No knowledge of CM, cursors, or events.
+- **Public API** (`src/Config.lua`) — `_G.CombatMode_PetMoveTo`. Thin facade with delegations to the service. Dependency wiring on `ADDON_LOADED`. Macro installer, slash commands.
+- **Service** (`src/PetMoveToService.lua`) — `ns.PetMoveToService` class, `ns.petMoveToService` instance. Manages command lifecycle, WoW events, cursor re-lock. CM injected at construction.
+- **Domain object** (`src/PetMoveToCommand.lua`) — `ns.PetMoveToCommand` class. Disposable state machine per activation. No knowledge of CM, cursors, or events.

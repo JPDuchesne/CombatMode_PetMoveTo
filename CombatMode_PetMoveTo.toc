@@ -1,12 +1,12 @@
 ## Interface: 120005, 120001, 120000
 ## Version: 0.1.0
-## Title: CombatMode: Reticle Pet Move To
+## Title: CombatMode: Pet Move To
 ## Notes: Pet-move for Combat Mode: hooks ShouldFreeLookBeOff and auto-installs macro; unlocks cursor for /petmoveto ground placement.
 ## Author: jpduchesne
 ## Dependencies: CombatMode
 ## DefaultState: enabled
 
-Config.lua
-PetMoveToCommand.lua
-PetMoveToService.lua
-AddonService.lua
+src/Config.lua
+src/PetMoveToCommand.lua
+src/PetMoveToService.lua
+src/AddonService.lua
