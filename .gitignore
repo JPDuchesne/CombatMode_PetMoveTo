@@ -1,3 +1,14 @@
 .DS_Store
 *.bak
 *~
+
+# Build artifacts
+lua_modules/
+dist/
+.luarocks/
+*.rock
+*.rockspec
+
+# LuaRocks-generated wrapper scripts (contain hardcoded local paths)
+/lua
+/luarocks
