@@ -12,3 +12,8 @@ dist/
 # LuaRocks-generated wrapper scripts (contain hardcoded local paths)
 /lua
 /luarocks
+
+# Dev tooling
+.shadowenv.d/
+deps/
+.dev/
