@@ -4,6 +4,7 @@
 ## Notes: Pet-move for Combat Mode: hooks ShouldFreeLookBeOff and auto-installs macro; unlocks cursor for /petmoveto ground placement.
 ## Author: jpduchesne
 ## Dependencies: CombatMode
+## IconTexture: Interface\AddOns\CombatMode_PetMoveTo\icon
 ## DefaultState: enabled
 
 src/PetMoveToCommand.lua
