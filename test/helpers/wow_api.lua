@@ -1,32 +1,32 @@
---[[ wow_env.lua — WoW API stubs for unit testing outside the game client.
+--[[ wow_api.lua — WoW API stubs for unit testing outside the game client.
 
 Provides just enough of the WoW Lua API surface so that addon source files
 can be loaded and exercised in a standard Lua 5.1 interpreter.
 
+WoW API functions are installed as globals (that's how addons consume them).
+Test-only control functions are namespaced under the returned WoWAPI table.
+
 Usage:
-  require("test.helpers.wow_env")
-  local ns, addonName = loadAddon("CombatMode_PetMoveTo.toc")
+  local WoWAPI = require("test.helpers.wow_api")
+  local ns, addonName = WoWAPI.loadAddon("CombatMode_PetMoveTo.toc")
+  WoWAPI.FireEvent("ADDON_LOADED", "CombatMode_PetMoveTo")
+  WoWAPI.Reset()
 ]]
 
--- Time simulation
+local WoWAPI = {}
+
+-- ============================================================================
+-- WoW API stubs (globals — addon code expects these in _G)
+-- ============================================================================
+
+-- Time
 local currentTime = 0
 
 function GetTime()
   return currentTime
 end
 
---- Advance the simulated clock. Test-only helper, not a WoW API.
----@param seconds number
-function AdvanceTime(seconds)
-  currentTime = currentTime + seconds
-end
-
---- Reset the simulated clock to zero. Test-only helper.
-function ResetTime()
-  currentTime = 0
-end
-
--- Timer simulation — tracks pending timers so tests can fire them.
+-- Timers
 local timers = {}
 local nextTimerId = 1
 
@@ -40,28 +40,7 @@ function C_Timer.NewTimer(duration, callback)
   return timer
 end
 
---- Fire all timers whose fireAt <= currentTime. Test-only helper.
-function FirePendingTimers()
-  local fired = {}
-  for i, timer in ipairs(timers) do
-    if not timer.cancelled and timer.fireAt <= currentTime then
-      timer.callback()
-      table.insert(fired, i)
-    end
-  end
-  -- Remove fired timers in reverse order
-  for i = #fired, 1, -1 do
-    table.remove(timers, fired[i])
-  end
-end
-
---- Clear all pending timers. Test-only helper.
-function ClearTimers()
-  timers = {}
-  nextTimerId = 1
-end
-
--- Frame system stubs
+-- Frames
 local frames = {}
 
 ---@class FakeFrame
@@ -97,23 +76,7 @@ function CreateFrame(frameType, name, parent, template)
   return frame
 end
 
---- Fire an event on all frames that registered for it.
----@param event string
----@param ... any
-function FireEvent(event, ...)
-  for _, frame in ipairs(frames) do
-    if frame.events[event] and frame.scripts["OnEvent"] then
-      frame.scripts["OnEvent"](frame, event, ...)
-    end
-  end
-end
-
---- Clear all frames. Test-only helper.
-function ClearFrames()
-  frames = {}
-end
-
--- String utilities (WoW globals)
+-- String utilities
 function strtrim(str)
   if not str then return "" end
   return str:match("^%s*(.-)%s*$")
@@ -126,11 +89,6 @@ function InCombatLockdown()
   return inCombatLockdown
 end
 
---- Set combat lockdown state. Test-only helper.
-function SetCombatLockdown(locked)
-  inCombatLockdown = locked
-end
-
 -- Mouselook
 local mouselooking = false
 
@@ -138,13 +96,8 @@ function IsMouselooking()
   return mouselooking
 end
 
---- Set mouselook state. Test-only helper.
-function SetMouselooking(active)
-  mouselooking = active
-end
-
--- Macro stubs
-local macros = {} -- { [index] = { name, icon, body, perChar } }
+-- Macros
+local macros = {}
 local nextMacroIndex = 1
 
 function CreateMacro(name, icon, body, perChar)
@@ -177,13 +130,7 @@ function GetNumMacros()
   return global, perChar
 end
 
---- Clear all macros. Test-only helper.
-function ClearMacros()
-  macros = {}
-  nextMacroIndex = 1
-end
-
--- hooksecurefunc stub — attaches a post-hook to a global function
+-- hooksecurefunc — attaches a post-hook to a global function
 local hookedFunctions = {}
 
 function hooksecurefunc(name, hook)
@@ -197,11 +144,6 @@ function hooksecurefunc(name, hook)
     _G[name] = hook
   end
   table.insert(hookedFunctions, { name = name, hook = hook })
-end
-
---- Clear hooked functions. Test-only helper.
-function ClearHooks()
-  hookedFunctions = {}
 end
 
 -- SpellStopTargeting default (hooked by PetMoveToService)
@@ -218,42 +160,82 @@ function LibStub:GetAddon(name)
   return LibStub._addons and LibStub._addons[name] or {}
 end
 
---- Register a fake addon for LibStub. Test-only helper.
-function LibStub:RegisterAddon(name, addon)
-  self._addons = self._addons or {}
-  self._addons[name] = addon
-end
-
---- Clear LibStub registrations. Test-only helper.
-function LibStub:ClearAddons()
-  self._addons = {}
-end
-
 -- print stub (captures output for assertion)
 local printLog = {}
-
 local _realPrint = print
+
 function print(...)
   local args = { ... }
   local msg = table.concat(args, "\t")
   table.insert(printLog, msg)
 end
 
---- Get captured print output. Test-only helper.
-function GetPrintLog()
+-- ============================================================================
+-- Test control functions (namespaced — not part of the WoW API)
+-- ============================================================================
+
+--- Advance the simulated clock.
+---@param seconds number
+function WoWAPI.AdvanceTime(seconds)
+  currentTime = currentTime + seconds
+end
+
+--- Fire all timers whose fireAt <= currentTime.
+function WoWAPI.FirePendingTimers()
+  local fired = {}
+  for i, timer in ipairs(timers) do
+    if not timer.cancelled and timer.fireAt <= currentTime then
+      timer.callback()
+      table.insert(fired, i)
+    end
+  end
+  for i = #fired, 1, -1 do
+    table.remove(timers, fired[i])
+  end
+end
+
+--- Fire an event on all frames that registered for it.
+---@param event string
+---@param ... any
+function WoWAPI.FireEvent(event, ...)
+  for _, frame in ipairs(frames) do
+    if frame.events[event] and frame.scripts["OnEvent"] then
+      frame.scripts["OnEvent"](frame, event, ...)
+    end
+  end
+end
+
+--- Set combat lockdown state.
+---@param locked boolean
+function WoWAPI.SetCombatLockdown(locked)
+  inCombatLockdown = locked
+end
+
+--- Set mouselook state.
+---@param active boolean
+function WoWAPI.SetMouselooking(active)
+  mouselooking = active
+end
+
+--- Register a fake addon for LibStub.
+---@param name string
+---@param addon table
+function WoWAPI.RegisterAddon(name, addon)
+  LibStub._addons = LibStub._addons or {}
+  LibStub._addons[name] = addon
+end
+
+--- Get captured print output.
+---@return string[]
+function WoWAPI.GetPrintLog()
   return printLog
 end
 
---- Clear captured print output. Test-only helper.
-function ClearPrintLog()
-  printLog = {}
-end
-
--- .toc-based addon loader
+--- Load an addon by parsing its .toc file and executing each listed source.
 ---@param tocPath string path to the .toc file
 ---@return table ns the addon's namespace table
 ---@return string addonName
-function loadAddon(tocPath)
+function WoWAPI.loadAddon(tocPath)
   local ns = {}
   local addonName = tocPath:match("([^/\\]+)%.toc$")
   for line in io.lines(tocPath) do
@@ -267,19 +249,23 @@ function loadAddon(tocPath)
 end
 
 --- Reset all WoW environment state between tests.
-function ResetWoWEnv()
-  ResetTime()
-  ClearTimers()
-  ClearFrames()
-  ClearMacros()
-  ClearHooks()
-  ClearPrintLog()
-  SetCombatLockdown(false)
-  SetMouselooking(false)
-  LibStub:ClearAddons()
+function WoWAPI.Reset()
+  currentTime = 0
+  timers = {}
+  nextTimerId = 1
+  frames = {}
+  macros = {}
+  nextMacroIndex = 1
+  hookedFunctions = {}
+  printLog = {}
+  inCombatLockdown = false
+  mouselooking = false
+  LibStub._addons = {}
   _G.CombatMode_PetMoveTo = nil
   _G.SpellStopTargeting = function() end
   _G.SLASH_COMBATMODE_PETMOVETO1 = nil
   _G.SlashCmdList = _G.SlashCmdList or {}
   _G.SlashCmdList["COMBATMODE_PETMOVETO"] = nil
 end
+
+return WoWAPI
