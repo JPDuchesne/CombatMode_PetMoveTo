@@ -1,4 +1,4 @@
-require("test.helpers.wow_env")
+local WoWAPI = require("test.helpers.wow_api")
 local lu = require("luaunit")
 
 -- Load only PetMoveToCommand (not the full addon, to avoid DI wiring)
@@ -11,7 +11,7 @@ local PetMoveToCommand = ns.PetMoveToCommand
 TestPetMoveToCommand = {}
 
 function TestPetMoveToCommand:setUp()
-  ResetTime()
+  WoWAPI.Reset()
 end
 
 function TestPetMoveToCommand:test_new_starts_in_targeting_state()
@@ -20,7 +20,7 @@ function TestPetMoveToCommand:test_new_starts_in_targeting_state()
 end
 
 function TestPetMoveToCommand:test_new_records_start_time()
-  AdvanceTime(5.0)
+  WoWAPI.AdvanceTime(5.0)
   local cmd = PetMoveToCommand:New()
   lu.assertEquals(cmd.startTime, 5.0)
 end
@@ -38,7 +38,7 @@ end
 
 function TestPetMoveToCommand:test_confirm_records_end_time()
   local cmd = PetMoveToCommand:New()
-  AdvanceTime(1.0)
+  WoWAPI.AdvanceTime(1.0)
   cmd:Confirm()
   lu.assertEquals(cmd.endTime, 1.0)
 end
@@ -51,7 +51,7 @@ end
 
 function TestPetMoveToCommand:test_cancel_records_end_time()
   local cmd = PetMoveToCommand:New()
-  AdvanceTime(2.0)
+  WoWAPI.AdvanceTime(2.0)
   cmd:Cancel()
   lu.assertEquals(cmd.endTime, 2.0)
 end

@@ -1,4 +1,4 @@
-require("test.helpers.wow_env")
+local WoWAPI = require("test.helpers.wow_api")
 local lu = require("luaunit")
 
 -- Load AddonService in isolation (depends only on WoW API stubs)
@@ -11,7 +11,7 @@ end
 TestAddonService = {}
 
 function TestAddonService:setUp()
-  ResetWoWEnv()
+  WoWAPI.Reset()
   self.ns = loadAddonService()
   self.service = self.ns.AddonService:New()
 end
@@ -42,7 +42,7 @@ end
 -- InstallMacro — error cases
 
 function TestAddonService:test_install_in_combat_throws()
-  SetCombatLockdown(true)
+  WoWAPI.SetCombatLockdown(true)
   local ok, err = pcall(self.service.InstallMacro, self.service)
   lu.assertFalse(ok)
   lu.assertEquals(err.type, "combat_lockdown")

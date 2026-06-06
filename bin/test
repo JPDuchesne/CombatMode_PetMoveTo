@@ -10,7 +10,7 @@ export LUA_PATH="./?.lua;./?/init.lua;./lua_modules/share/lua/5.1/?.lua;./lua_mo
 export LUA_CPATH="./lua_modules/lib/lua/5.1/?.so;;"
 
 if ! "$LUA" -e 'require("luaunit")' 2>/dev/null; then
-  echo "LuaUnit not found. Run: dev up (or ./bin/up)" >&2
+  echo "LuaUnit not found. Run: dev up" >&2
   exit 1
 fi
 
