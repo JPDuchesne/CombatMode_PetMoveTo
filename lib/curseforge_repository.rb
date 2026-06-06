@@ -4,15 +4,15 @@ require "digest"
 require "json"
 require "net/http"
 require "tempfile"
+require "dev/credentials"
 require "dev/deps"
 
 # CurseForge API repository — resolves WoW addon version constraints.
 #
-# Requires CF_API_KEY environment variable (https://console.curseforge.com).
 # Queries the CurseForge v1 API for mod files, selects best version match,
 # downloads to compute SHA256, and caches the artifact.
+# Credentials are resolved via Dev::Credentials (Keychain / env var / prompt).
 class CurseForgeRepository < Dev::Deps::Repository
-  class ApiKeyMissingError < StandardError; end
   class ModNotFoundError < StandardError; end
   class NoFilesError < StandardError; end
   class ApiError < StandardError; end
@@ -24,14 +24,12 @@ class CurseForgeRepository < Dev::Deps::Repository
   #
   # @param id [Hash] identifier with "name", "integration", "group", "constraint"
   # @return [Dev::Deps::Dependency]
-  # @raise [ApiKeyMissingError] if CF_API_KEY is not set
+  # @raise [Dev::Credentials::MissingCredentialError] if no API key can be resolved
   # @raise [ModNotFoundError] if the mod cannot be found
   # @raise [NoFilesError] if no files match the constraint
   # @raise [ApiError] if the CurseForge API returns an error
   def fetch(id)
-    api_key = ENV.fetch("CF_API_KEY") do
-      raise ApiKeyMissingError, "CF_API_KEY required — get one at https://console.curseforge.com"
-    end
+    api_key = resolve_api_key
 
     name = id["name"]
     constraint = id["constraint"] || {}
@@ -53,6 +51,22 @@ class CurseForgeRepository < Dev::Deps::Repository
   end
 
   private
+
+  CONSOLE_URL = "https://console.curseforge.com"
+
+  # Resolve the CurseForge API key via Dev::Credentials fallback chain.
+  #
+  # @return [String] API key
+  # @raise [Dev::Credentials::MissingCredentialError] if no key can be resolved
+  def resolve_api_key
+    Dev::Credentials.resolve(
+      namespace: "curseforge",
+      key: "api_key",
+      env_var: "CF_API_KEY",
+      prompt_label: "CurseForge API key (for dependency resolution)",
+      create_url: CONSOLE_URL,
+    )
+  end
 
   # @param name [String] mod name to search for
   # @param api_key [String]
