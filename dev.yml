@@ -2,9 +2,6 @@ name: combatmode-petmoveto
 lua: "5.1"
 
 commands:
-  up:
-    desc: Project-specific setup (luarocks init)
-    run: ./bin/up
   test:
     desc: Run unit tests
     run: ./bin/test
